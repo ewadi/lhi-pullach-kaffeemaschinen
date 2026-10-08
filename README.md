@@ -2,5 +2,7 @@
 
 Öffentliches, mobil optimiertes Formular für die Vor-Ort-Bestandsaufnahme.
 
-Die Eingaben werden ausschließlich im lokalen Browser-Speicher des verwendeten
-Geräts gehalten. Erst der manuelle CSV-Export gibt die erfassten Daten weiter.
+GitHub Pages leitet auf die öffentliche Formularanwendung weiter. Entwürfe
+bleiben zunächst im Browser des verwendeten Geräts. Mit „Zentral speichern“
+werden abgeschlossene Bestandsaufnahmen in der geschützten Anwendungsdatenbank
+abgelegt; der CSV-Export dient nur noch als optionale Sicherung.
