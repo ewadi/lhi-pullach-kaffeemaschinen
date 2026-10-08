@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#17365d">
+  <meta name="description" content="Mobile Bestandsaufnahme der Kaffeemaschinen am LHI Campus Pullach">
+  <title>Kaffeemaschinen erfassen</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --navy: #17365d;
+      --blue: #25658f;
+      --sky: #eaf3f8;
+      --paper: #f5f7f9;
+      --white: #ffffff;
+      --text: #142132;
+      --muted: #5f6f7e;
+      --line: #d5dee6;
+      --input: #fff7d6;
+      --focus: #0b78b5;
+      --danger: #b42318;
+      --shadow: 0 10px 30px rgba(23, 54, 93, .10);
+    }
+    * { box-sizing: border-box; }
+    html { background: var(--paper); }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--text);
+      background: linear-gradient(180deg, var(--navy) 0 12rem, var(--paper) 12rem 100%);
+    }
+    button, input, select, textarea { font: inherit; }
+    button, select { touch-action: manipulation; }
+    .shell {
+      width: min(100%, 760px);
+      margin: 0 auto;
+      padding: max(1rem, env(safe-area-inset-top)) 1rem calc(7rem + env(safe-area-inset-bottom));
+    }
+    header { color: var(--white); padding: .6rem .2rem 1.4rem; }
+    header p { margin: .45rem 0 0; line-height: 1.45; color: #dce9f2; }
+    h1 { margin: 0; font-size: clamp(1.55rem, 6vw, 2.25rem); line-height: 1.1; letter-spacing: -.02em; }
+    .status-card, .machine-card {
+      background: var(--white);
+      border: 1px solid rgba(213, 222, 230, .9);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+    }
+    .status-card { padding: 1rem; margin-bottom: 1rem; }
+    .status-row { display: flex; align-items: center; justify-content: space-between; gap: .8rem; }
+    .status-row strong { color: var(--navy); }
+    .count {
+      min-width: 2.5rem;
+      height: 2.5rem;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      background: var(--sky);
+      color: var(--navy);
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+    .save-note { margin: .55rem 0 0; color: var(--muted); font-size: .88rem; line-height: 1.4; }
+    #machines { display: grid; gap: 1rem; }
+    .machine-card { padding: 1rem; }
+    .card-head { display: flex; align-items: center; justify-content: space-between; gap: .8rem; margin-bottom: 1rem; }
+    .card-head h2 { margin: 0; font-size: 1.1rem; color: var(--navy); }
+    .remove {
+      border: 0;
+      background: transparent;
+      color: var(--danger);
+      padding: .65rem;
+      min-width: 44px;
+      min-height: 44px;
+      border-radius: 12px;
+      font-weight: 700;
+    }
+    .remove:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+    .grid { display: grid; grid-template-columns: 1fr; gap: .9rem; }
+    label { display: grid; gap: .42rem; font-size: .92rem; font-weight: 700; color: #2b3d50; }
+    label span small { font-weight: 400; color: var(--muted); }
+    input, select, textarea {
+      width: 100%;
+      min-height: 50px;
+      border: 1.5px solid #c7d1db;
+      border-radius: 12px;
+      padding: .78rem .85rem;
+      color: var(--text);
+      background: var(--input);
+      font-size: 16px;
+    }
+    textarea { min-height: 88px; resize: vertical; line-height: 1.4; }
+    input:focus, select:focus, textarea:focus { outline: 3px solid rgba(11,120,181,.2); border-color: var(--focus); }
+    .required::after { content: " *"; color: var(--danger); }
+    .add {
+      width: 100%;
+      min-height: 54px;
+      margin-top: 1rem;
+      border: 2px dashed #86a8bf;
+      border-radius: 16px;
+      background: var(--sky);
+      color: var(--navy);
+      font-weight: 700;
+    }
+    .actions {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 10;
+      background: rgba(255,255,255,.96);
+      border-top: 1px solid var(--line);
+      padding: .75rem max(1rem, env(safe-area-inset-right)) calc(.75rem + env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+      backdrop-filter: blur(10px);
+    }
+    .action-inner { width: min(100%, 728px); margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: .7rem; }
+    .primary, .secondary {
+      min-height: 50px;
+      border-radius: 13px;
+      font-weight: 700;
+      padding: .75rem;
+    }
+    .primary { border: 1px solid var(--navy); color: var(--white); background: var(--navy); }
+    .secondary { border: 1px solid #9fb3c3; color: var(--navy); background: var(--white); }
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: calc(6.8rem + env(safe-area-inset-bottom));
+      transform: translateX(-50%) translateY(1rem);
+      width: min(calc(100% - 2rem), 520px);
+      background: #102a43;
+      color: white;
+      padding: .9rem 1rem;
+      border-radius: 12px;
+      text-align: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: .2s ease;
+      box-shadow: var(--shadow);
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    @media (min-width: 620px) {
+      .grid { grid-template-columns: 1fr 1fr; }
+      .wide { grid-column: 1 / -1; }
+      .machine-card { padding: 1.25rem; }
+    }
+    @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; } }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <h1>Kaffeemaschinen erfassen</h1>
+      <p>LHI Campus Pullach. Für jede Maschine Seriennummer und genaue Position eintragen.</p>
+    </header>
+
+    <section class="status-card" aria-label="Erfassungsstatus">
+      <div class="status-row">
+        <div><strong>Erfasste Maschinen</strong><div class="save-note" id="saveStatus">Noch keine Eingabe</div></div>
+        <div class="count" id="count">1</div>
+      </div>
+      <p class="save-note">Die Eingaben bleiben auf diesem Gerät gespeichert. Zum Zurücksenden bitte unten „CSV teilen“ oder „CSV laden“ wählen.</p>
+    </section>
+
+    <section id="machines" aria-live="polite"></section>
+    <button class="add" id="addMachine" type="button">Weitere Kaffeemaschine</button>
+  </main>
+
+  <footer class="actions">
+    <div class="action-inner">
+      <button class="secondary" id="downloadCsv" type="button">CSV laden</button>
+      <button class="primary" id="shareCsv" type="button">CSV teilen</button>
+    </div>
+  </footer>
+
+  <div class="toast" id="toast" role="status"></div>
+
+  <template id="machineTemplate">
+    <article class="machine-card">
+      <div class="card-head">
+        <h2>Kaffeemaschine <span class="number"></span></h2>
+        <button class="remove" type="button" aria-label="Kaffeemaschine entfernen">Entfernen</button>
+      </div>
+      <div class="grid">
+        <label><span class="required">Seriennummer</span><input name="serialnumber" autocomplete="off" inputmode="text" required></label>
+        <label>Hersteller<input name="manufacturer" autocomplete="organization"></label>
+        <label>Modell<input name="model" autocomplete="off"></label>
+        <label>Gebäudeteil<input name="buildingPart" autocomplete="off" placeholder="z. B. A, B oder D"></label>
+        <label>Etage<input name="floor" autocomplete="off" placeholder="z. B. E0 oder E2"></label>
+        <label>Raum / Bereich<input name="room" autocomplete="off" placeholder="z. B. Teeküche"></label>
+        <label class="wide"><span class="required">Genaue Position / Anschluss</span><textarea name="position" required placeholder="z. B. Gebäude B, E1, Teeküche neben Aufzug, Anschluss 230 V"></textarea></label>
+        <label>Betriebszustand<select name="status"><option value="">Bitte wählen</option><option>In Betrieb</option><option>Außer Betrieb</option><option>Unklar</option></select></label>
+        <label>Vorhanden?<select name="present"><option value="Ja">Ja</option><option value="Nein">Nein</option></select></label>
+        <label class="wide">Bemerkung / Foto-Dateiname<textarea name="notes" placeholder="Optional"></textarea></label>
+        <label>Erfasst von<input name="recordedBy" autocomplete="name"></label>
+        <label>Erfasst am<input name="recordedAt" type="date"></label>
+      </div>
+    </article>
+  </template>
+
+  <script>
+    const STORAGE_KEY = "lhi-pullach-kaffeemaschinen-v1";
+    const fields = ["serialnumber", "manufacturer", "model", "buildingPart", "floor", "room", "position", "present", "status", "notes", "recordedBy", "recordedAt"];
+    const machinesEl = document.querySelector("#machines");
+    const template = document.querySelector("#machineTemplate");
+    const countEl = document.querySelector("#count");
+    const saveStatus = document.querySelector("#saveStatus");
+    const toastEl = document.querySelector("#toast");
+    let machines = load();
+    let toastTimer;
+
+    function emptyMachine() {
+      return { serialnumber:"", manufacturer:"", model:"", buildingPart:"", floor:"", room:"", position:"", present:"Ja", status:"", notes:"", recordedBy:"", recordedAt:new Date().toISOString().slice(0,10) };
+    }
+    function load() {
+      try {
+        const stored = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        return Array.isArray(stored) && stored.length ? stored : [emptyMachine()];
+      } catch { return [emptyMachine()]; }
+    }
+    function save(message = "Automatisch gespeichert") {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(machines));
+      saveStatus.textContent = `${message} · ${new Date().toLocaleTimeString("de-DE", {hour:"2-digit", minute:"2-digit"})}`;
+      countEl.textContent = machines.length;
+    }
+    function showToast(message) {
+      clearTimeout(toastTimer);
+      toastEl.textContent = message;
+      toastEl.classList.add("show");
+      toastTimer = setTimeout(() => toastEl.classList.remove("show"), 2400);
+    }
+    function render() {
+      machinesEl.replaceChildren();
+      machines.forEach((machine, index) => {
+        const node = template.content.cloneNode(true);
+        const card = node.querySelector("article");
+        node.querySelector(".number").textContent = index + 1;
+        const remove = node.querySelector(".remove");
+        remove.hidden = machines.length === 1;
+        remove.addEventListener("click", () => {
+          if (!confirm(`Kaffeemaschine ${index + 1} wirklich entfernen?`)) return;
+          machines.splice(index, 1);
+          save("Entfernt und gespeichert");
+          render();
+        });
+        fields.forEach(name => {
+          const input = card.querySelector(`[name="${name}"]`);
+          input.value = machine[name] ?? "";
+          input.addEventListener("input", () => { machines[index][name] = input.value; save(); });
+          input.addEventListener("change", () => { machines[index][name] = input.value; save(); });
+        });
+        machinesEl.append(node);
+      });
+      countEl.textContent = machines.length;
+    }
+    function validate() {
+      const missing = machines.findIndex(m => !m.serialnumber.trim() || !m.position.trim());
+      if (missing < 0) return true;
+      const card = machinesEl.children[missing];
+      card.scrollIntoView({behavior:"smooth", block:"center"});
+      const target = !machines[missing].serialnumber.trim() ? card.querySelector('[name="serialnumber"]') : card.querySelector('[name="position"]');
+      target.focus();
+      showToast(`Maschine ${missing + 1}: Seriennummer und Position fehlen`);
+      return false;
+    }
+    function csvBlob() {
+      const headers = ["Erfassungsart","EGM-Anlagen-ID","Anlagennummer","Bezeichnung","Seriennummer","Hersteller","Modell","Gebäudeteil","Etage","Raum / Bereich","Genaue Position / Anschluss","Vorhanden?","Betriebszustand","Bemerkung / Foto-Dateiname","Erfasst von","Erfasst am"];
+      const esc = value => `"${String(value ?? "").replaceAll('"','""')}"`;
+      const rows = machines.map(m => ["Zusätzlich gefunden","","","Kaffeemaschine",m.serialnumber,m.manufacturer,m.model,m.buildingPart,m.floor,m.room,m.position,m.present,m.status,m.notes,m.recordedBy,m.recordedAt]);
+      return new Blob(["\ufeff" + [headers, ...rows].map(row => row.map(esc).join(";")).join("\r\n")], {type:"text/csv;charset=utf-8"});
+    }
+    function fileName() { return `LHI_Pullach_Kaffeemaschinen_${new Date().toISOString().slice(0,10)}.csv`; }
+    function download() {
+      if (!validate()) return;
+      const url = URL.createObjectURL(csvBlob());
+      const a = document.createElement("a");
+      a.href = url; a.download = fileName(); document.body.append(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      showToast("CSV wurde erstellt");
+    }
+    document.querySelector("#addMachine").addEventListener("click", () => {
+      machines.push(emptyMachine());
+      save("Neue Maschine angelegt");
+      render();
+      machinesEl.lastElementChild.scrollIntoView({behavior:"smooth", block:"start"});
+      machinesEl.lastElementChild.querySelector('[name="serialnumber"]').focus();
+    });
+    document.querySelector("#downloadCsv").addEventListener("click", download);
+    document.querySelector("#shareCsv").addEventListener("click", async () => {
+      if (!validate()) return;
+      const file = new File([csvBlob()], fileName(), {type:"text/csv"});
+      if (navigator.canShare?.({files:[file]})) {
+        try { await navigator.share({title:"Kaffeemaschinen LHI Pullach", text:"Ausgefüllte Bestandsaufnahme", files:[file]}); }
+        catch (error) { if (error.name !== "AbortError") download(); }
+      } else { download(); }
+    });
+    render();
+    saveStatus.textContent = localStorage.getItem(STORAGE_KEY) ? "Gespeicherten Stand geladen" : "Noch keine Eingabe";
+  </script>
+</body>
+</html>
